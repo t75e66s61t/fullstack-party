@@ -2,7 +2,7 @@
 
 namespace App\Http\Controllers\Auth;
 
-use Socialite;
+use App\Models\Git;
 use App\Http\Controllers\Controller;
 use Illuminate\Foundation\Auth\AuthenticatesUsers;
 
@@ -27,6 +27,8 @@ class LoginController extends Controller
      * @var string
      */
     protected $redirectTo = '/home';
+    
+    private $_git = null;
 
     /**
      * Create a new controller instance.
@@ -36,6 +38,8 @@ class LoginController extends Controller
     public function __construct()
     {
         $this->middleware('guest')->except('logout');
+        
+        $this->_git = Git::getInstance();
     }
     
     /**
@@ -45,7 +49,7 @@ class LoginController extends Controller
      */
     public function redirectToProvider()
     {
-        return Socialite::driver('github')->redirect();
+        return $this->_git->login();
     }
 
     /**
@@ -55,8 +59,6 @@ class LoginController extends Controller
      */
     public function handleProviderCallback()
     {
-        $user = Socialite::driver('github')->user();
-
-        dd($user);
+        return $this->_git->loginCallback();
     }
 }
