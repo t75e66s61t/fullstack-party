@@ -6,6 +6,8 @@ class GitController extends Controller
 {
     public function issues() 
     {
-        return "Issues";
+        $issues = "Issues";
+        
+        return view('git.issues', compact('issues'));
     }
 }
