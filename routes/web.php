@@ -13,11 +13,14 @@
 
 Route::get('/', function () {
     return view('welcome');
+})->name('home');
+
+Route::group(['middleware'=>'guest'], function() {
+    Route::get('login/github/', 'Auth\LoginController@redirectToProvider')->name('login');
+    Route::get('login/github/callback/', 'Auth\LoginController@handleProviderCallback')->name('callback');
 });
 
-Route::get('login/github/', 'Auth\LoginController@redirectToProvider')->name('login');
-Route::get('login/github/callback/', 'Auth\LoginController@handleProviderCallback')->name('callback');
-
-Route::get('/logout', 'Auth\LoginController@logout')->name('logout');
-
-Route::get('/git/issues/', 'GitController@issues')->name('issues');
+Route::group(['middleware'=>'auth'], function() {
+    Route::get('/git/{repo}/issues/', 'GitController@issues')->name('issues');
+    Route::get('/logout', 'Auth\LoginController@logout')->name('logout');
+});

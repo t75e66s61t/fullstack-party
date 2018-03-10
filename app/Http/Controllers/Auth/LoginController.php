@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers\Auth;
 
+use Auth;
 use App\Models\Git;
 use App\Http\Controllers\Controller;
 use Illuminate\Foundation\Auth\AuthenticatesUsers;
@@ -26,9 +27,7 @@ class LoginController extends Controller
      *
      * @var string
      */
-    protected $redirectTo = '/home';
-    
-    private $_git = null;
+    protected $redirectTo = '/';
 
     /**
      * Create a new controller instance.
@@ -38,8 +37,6 @@ class LoginController extends Controller
     public function __construct()
     {
         $this->middleware('guest')->except('logout');
-        
-        $this->_git = Git::getInstance();
     }
     
     /**
@@ -49,7 +46,7 @@ class LoginController extends Controller
      */
     public function redirectToProvider()
     {
-        return $this->_git->login();
+        return Git::getInstance()->login();
     }
 
     /**
@@ -59,6 +56,6 @@ class LoginController extends Controller
      */
     public function handleProviderCallback()
     {
-        return $this->_git->loginCallback();
+        return Git::getInstance()->loginCallback();
     }
 }
