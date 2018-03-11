@@ -106,25 +106,7 @@ class Git
         $this->_repo = config('github.default_repo');
     }
 
-    
-    public function getIssue($id) {
-        
-        
-        $headers = [
-                "Accept: application/vnd.github.v3+json,application/vnd.github.symmetra-preview+json",
-                "User-Agent: testio.",
-                "Authorization: token  a3636e3f2296546552e0a27b8dea68c9f0d66f8e",
-            ];
-        var_dump("{$this->_apiUrl}repos/{$this->_user->username}/{$this->_repo}/issues/{$id}");
-        $ch = curl_init();
-        curl_setopt($ch, CURLOPT_URL, "{$this->_apiUrl}repos/{$this->_user->username}/{$this->_repo}/issues/{$id}");
-        curl_setopt($ch, CURLOPT_HTTPHEADER, $headers);
-        curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
-        $content = curl_exec($ch);
-        
-        dd($content);
-    }
-    
+
     /**
      * Gets list of issues assigned to currently logged in user
      * 
