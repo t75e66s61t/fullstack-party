@@ -1,29 +1,25 @@
-# Great task for Great Fullstack Developer
+# Before we go
+This is my first time I've used:
 
-If you found this task it means we are looking for you!
+ - Laravel
+ - Git
+ - OAuth based API
 
-> Note: To clone this repository you will need [GIT-LFS](https://git-lfs.github.com/)
 
-## Few simple steps
+# Requirements
 
-1. Fork this repo
-2. Do your best
-3. Prepare pull request and let us know that you are done
+PHP 7.1.3+
 
-## Few simple requirements
 
-- Design should be recreated as closely as possible.
-- Design must be responsive. Because we live in our smartphones and we will check with them for sure.
-- Use GitHub V3 REST API to receive data. [Docs here](https://developer.github.com/v3/)
-- Use popular PHP framework (SlimPHP, Lumen, Symfony, Laravel, Zend or any other)
-- Use AngularJS or ReactJS.
-- Use CSS preprocessor (SCSS preferred).
-- Browser support must be great. All modern browsers plus IE9 and above.
-- Use a Javascript task-runner. Gulp, Webpack or Grunt - it doesn't matter.
-- Do not commit the build, because we are building things on deployment.
+# Installation
 
-## Few tips
+ - Clone 
+ - composer install
+ - Setup env. Assign these values:
 
-- Structure! WE LOVE STRUCTURE!
-- Maybe You have an idea how it should interact with users? Do it! Its on you!
-- Have fun!
+>  GITHUB_API_URL  
+>  GITHUB_DEFAULT_REPO  
+>  GITHUB_CLIENT_ID 
+> GITHUB_CLIENT_SECRET
+
+ - php artisan config:cache
