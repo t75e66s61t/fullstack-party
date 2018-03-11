@@ -58,7 +58,8 @@ class Git
     
     /**
      * Storing issues total amounts
-     * @var type 
+     * 
+     * @var array 
      */
     private $_totals = [];
     
@@ -167,9 +168,9 @@ class Git
      */
     public function getIssues(string $status, int $page, int $limit, string $repo): array
     {
-        //validate type
+        //validate status
         if (!in_array($status, ["open", "closed"])) {
-            $type = "open";
+            $status = "open";
         }
         
         //initializing issues cache group
