@@ -82,7 +82,7 @@ class GitCache {
         }
         
         if (in_array($this->_cacheHits[$group]['status'], [self::STATUS_UNKNOWN, self::STATUS_DIDNT_HIT])) {
-            $etag = $this->_getEtag($url);
+            $etag = $this->_getEtag($url, $group);
             
             //if we were able to get ETag
             if ($etag) {
@@ -94,6 +94,8 @@ class GitCache {
                     //if not, then save new ETag and set status to not hit
                     Cache::put($this->_cacheHits[$group]['etag'], $etag, 60);
                     $this->_cacheHits[$group]['status'] = self::STATUS_DIDNT_HIT;
+                    
+                    return false;
                 }
             }
         }
@@ -121,28 +123,60 @@ class GitCache {
      * 
      * @return string
      */
-    private function _getEtag(string $url): string
+    private function _getEtag(string $url, string $group): string
     {
-        $client = new \GuzzleHttp\Client();
-        try {
-            $etag = $client->get($url, ['headers' => $this->_headers])->getHeader("ETag");
-            if ($etag) {
-                return $etag[0];
-            }
-        } catch (ClientErrorResponseException $exception) {
-            $responseBody = $exception->getResponse()->getBody(true);
-            dd($responseBody);
-        } catch (\GuzzleHttp\Exception\ClientException $exception) {
-            //check if we have used out limit
-            $limit = $exception->getResponse()->getHeader("X-RateLimit-Remaining");
+        $etag = Cache::get($this->_cacheHits[$group]['etag']);
+
+        $headers = $this->_headers;
+        if ($etag) {
+            $headers = array_merge($this->_headers, ["If-None-Match: {$etag}"]);
+        }
+        
+        $ch = curl_init();
+        curl_setopt($ch, CURLOPT_URL, $url);
+        curl_setopt($ch, CURLOPT_HTTPHEADER, $headers);
+        curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+        curl_setopt($ch, CURLOPT_HEADER, true);
+        $content = curl_exec($ch);
+
+        $headers = $this->_get_headers_from_curl_response($content);
             
-            //if so - just return cached ETag
-            if ($limit && isset($limit[0]) && $limit[0] == 0) {
+        if ($headers && isset($headers['ETag'])) {
+            return $headers['ETag'];
+        } else {
+            if ($headers && isset($headers["X-RateLimit-Remaining"]) && $headers["X-RateLimit-Remaining"]) {
                 var_dump('Limit reached... using cache... data may be outdated');
                 return "Limit-Reached";
             }
         }
         
         return "";
+    }
+    
+    
+    /**
+     * 
+     * @url https://stackoverflow.com/a/10590242
+     * 
+     * @param type $response
+     * @return type
+     */
+    private function _get_headers_from_curl_response($response)
+    {
+        $headers = array();
+
+        $header_text = substr($response, 0, strpos($response, "\r\n\r\n"));
+
+        foreach (explode("\r\n", $header_text) as $i => $line)
+            if ($i === 0)
+                $headers['http_code'] = $line;
+            else
+            {
+                list ($key, $value) = explode(': ', $line);
+
+                $headers[$key] = $value;
+            }
+
+        return $headers;
     }
 }

@@ -12,18 +12,19 @@ use Git;
 
 class GitController extends Controller
 {
-    public function comments(Git $git, string $repo, string $id)
+    public function comments(Git $git, string $repo, int $id)
     {
         return view('git.comments', compact(['repo']));
     }
     
     public function issues(Git $git, string $repo) 
     {
+        $status = request()->get('status', "open");
         $page = (int)request()->get('page', 0);
         $limit = 2;
         
         //get issues assigned to given repository
-        $issues = $git->getIssues($page, $limit, $repo);
+        $issues = $git->getIssues($status, $page, $limit, $repo);
         
         //create paging elements
         $links = $git->links();
@@ -31,7 +32,10 @@ class GitController extends Controller
         //get time tracking logs
         $logs = $git->getLogs();
         
+        //get totals
+        $totals = $git->getTotals();
         
-        return view('git.issues', compact(['issues', 'links', 'logs']));
+        
+        return view('git.issues', compact(['issues', 'links', 'logs', 'totals', 'repo']));
     }
 }

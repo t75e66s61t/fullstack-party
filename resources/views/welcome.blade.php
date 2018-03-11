@@ -71,6 +71,7 @@
                     @auth
                         <a href="{{ url('/home') }}">Home</a>
                         <a href="{{ route('issues', ['repo' => config('github.default_repo')]) }}">Issues</a>
+                        <a href="{{ route('logout') }}">Logout</a>
                     @else
                         <a href="{{ route('login') }}">Login</a>
                     @endauth

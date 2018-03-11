@@ -3,9 +3,19 @@
 @section('content')
     <div class="container justify-content-center">
         <div class="col-md-12 col-md-offset-3">
+            <div class="card card-default mb20">
+                <div class="card-header">
+                    <center>
+                        <a href="{{ route('issues', ['repo'=>$repo]) }}" class="btn btn-success mr50">{{ $totals['total_opened'] }} open</a>
+                        
+                        <a href="{{ route('issues', ['repo'=>$repo]) }}?status=closed" class="btn btn-warning">{{ $totals['total_closed'] }} closed</a>
+                    </center>
+                </div>
+            </div>
+            
             @forelse($issues as $issue)
               <div class="card card-default mb20">
-                  <div class="card-header">
+                  <div class="card-body">
                     <span>
                       {{ $issue->title }}
 

@@ -3,7 +3,6 @@
  * Of course the easiest solution would be to use KnpLabs/php-github-api or similar library, but if I understood
  * the task correctly, it has to be done using GitHub V3 REST API directly. So here we go
  * 
- * @todo add x-rate-limit processing to caching system
  * 
  * @author test99555672 <test99555672@gmail.com>
  * @version 1.0
@@ -58,6 +57,13 @@ class Git
     
     
     /**
+     * Storing issues total amounts
+     * @var type 
+     */
+    private $_totals = [];
+    
+    
+    /**
      * Storing user data for future use
      * 
      * @var User
@@ -79,7 +85,7 @@ class Git
             //setup headers
             $this->_headers = [
                 "Accept: application/vnd.github.v3+json,application/vnd.github.symmetra-preview+json",
-                "User-Agent: Awesome-Octocat-App",
+                "User-Agent: testio.",
                 "Authorization: token {$this->_user->token}",
             ];
                 
@@ -88,7 +94,7 @@ class Git
             
             
             //setup caching helper classes
-            $this->_cache = new GitCache(['issues'], $this->_headers);
+            $this->_cache = new GitCache(['issues', 'issues_open', 'issues_closed'], $this->_headers);
             
             //setup time tracking helper class
             if ($trackTime) {
@@ -101,29 +107,53 @@ class Git
     }
 
     
+    public function getIssue($id) {
+        
+        
+        $headers = [
+                "Accept: application/vnd.github.v3+json,application/vnd.github.symmetra-preview+json",
+                "User-Agent: testio.",
+                "Authorization: token  a3636e3f2296546552e0a27b8dea68c9f0d66f8e",
+            ];
+        var_dump("{$this->_apiUrl}repos/{$this->_user->username}/{$this->_repo}/issues/{$id}");
+        $ch = curl_init();
+        curl_setopt($ch, CURLOPT_URL, "{$this->_apiUrl}repos/{$this->_user->username}/{$this->_repo}/issues/{$id}");
+        curl_setopt($ch, CURLOPT_HTTPHEADER, $headers);
+        curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+        $content = curl_exec($ch);
+        
+        dd($content);
+    }
+    
     /**
      * Gets list of issues assigned to currently logged in user
      * 
+     * @param string $status open|closed
      * @param int $page
      * @param int $limit
      * 
      * @return array
      */
-    public function getIssues(int $page, int $limit, string $repo): array
+    public function getIssues(string $status, int $page, int $limit, string $repo): array
     {
-        //initializing issues cache group
-        $this->_initCaching("issues");
+        //validate type
+        if (!in_array($status, ["open", "closed"])) {
+            $type = "open";
+        }
         
+        //initializing issues cache group
+        $this->_initCaching("issues_open", "open");
+        $this->_initCaching("issues_closed", "closed");
         
         //getting total amount of issues
-        $this->_totalIssues = $this->_getTotalIssues();
+        $this->_totals = $this->_getTotals();
 
         
         //getting issues
-        $cache_key = "issues_{$this->_user->username}_{$this->_repo}_{$page}_{$limit}";
-        $issues = $this->_cache->get("issues", $cache_key, []);
+        $cache_key = "issues_{$this->_user->username}_{$this->_repo}_{$status}_{$page}_{$limit}";
+        $issues = $this->_cache->get("issues_{$status}", $cache_key, []);
         if (empty($issues)) {
-            $issues = (array)$this->_api("repos/{$this->_user->username}/{$this->_repo}/issues?page={$page}&per_page={$limit}", true, "issues");
+            $issues = (array)$this->_api("repos/{$this->_user->username}/{$this->_repo}/issues?page={$page}&per_page={$limit}&state={$status}");
             
             $this->_cache->set($cache_key, $issues);
         }
@@ -134,7 +164,7 @@ class Git
           $issues = [];
         } else {
           //pagination
-          $this->_links = new LengthAwarePaginator($issues, $this->_totalIssues, $limit, $page, [
+          $this->_links = new LengthAwarePaginator($issues, $this->_totals["total_{$status}"], $limit, $page, [
               'path' => request()->url(), 
               'query' => request()->query(),
           ]);
@@ -156,6 +186,15 @@ class Git
         }
         
         return [];
+    }
+    
+    
+    public function getTotals(): array
+    {
+        return [
+            'total_opened' => $this->_totals['total_open'],
+            'total_closed' => $this->_totals['total_closed'],
+        ];
     }
     
     
@@ -238,16 +277,25 @@ class Git
     }
     
     
-    private function _initCaching(string $group): void
+    private function _initCaching(string $group, string $state=""): void
     {
         if ($this->_timeTracker) {
             $this->_timeTracker->start();
         }
         
-        $this->_cache->init($group, "{$this->_apiUrl}repos/{$this->_user->username}/{$this->_repo}/issues?page=1&per_page=1");
+        $status = "";
+        if ($state) {
+            $status = "&{$state}";
+        }
+        
+        $res = $this->_cache->init($group, "{$this->_apiUrl}repos/{$this->_user->username}/{$this->_repo}/issues?page=1&per_page=1{$status}");
+        
+        if ($res) {
+            $res = "cache hit!";
+        }
         
         if ($this->_timeTracker) {
-            $this->_timeTracker->stop("ETag verification ({$group})");
+            $this->_timeTracker->stop("ETag verification ({$group}) {$res}");
         }
     }
     
@@ -255,22 +303,30 @@ class Git
     /**
      * Gets total amount of issues available in current repository for given user 
      * 
-     * @return int
+     * @return array total_opened, total_closed
      */
-    private function _getTotalIssues(): int 
+    private function _getTotals(): array 
     {
-        //try to load results from cache
-        $res = $this->_cache->get("issues", "total_issues", -1);
+        $res = [];
         
-        //if cached value vas not found
-        if ($res == -1) {
-            //unfortrunately this is a workaround :( couldn't find an "official" way of getting total records amount
-            //in order to minimize request size (that means response time too), set per_page=1 & page=1000 (maximum allowed)
-            //this way we will get 0 elements in most cases (maximum 1)
-            $res = (int)($this->_api("search/issues?q=user:{$this->_user->username}+repo:{$this->_repo}&per_page=1&page=1000")->total_count);
+        //try to load results from cache
+        $res['total_open'] = $this->_cache->get("issues_open", "total_open_issues", -1);
+        $res['total_closed'] = $this->_cache->get("issues_closed", "total_closed_issues", -1);
+        
+        //renew total_open if needed
+        if ($res['total_open'] == -1) {
+            $res['total_open'] = (int)($this->_api("search/issues?q=user:{$this->_user->username}+repo:{$this->_repo}+is:issue+is:open&per_page=1&page=1000")->total_count);
             
             //cache new value
-            $this->_cache->set("total_issues", $res);
+            $this->_cache->set("total_open_issues", $res['total_open']);
+        }
+        
+        //renew total_closed if needed
+        if ($res['total_closed'] == -1) {
+            $res['total_closed'] = (int)($this->_api("search/issues?q=user:{$this->_user->username}+repo:{$this->_repo}+is:issue+is:closed&per_page=1&page=1000")->total_count);
+            
+            //cache new value
+            $this->_cache->set("total_closed_issues", $res['total_closed']);
         }
 
         return $res;
