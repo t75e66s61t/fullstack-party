@@ -2,8 +2,7 @@
 
 namespace App\Http\Controllers\Auth;
 
-use Auth;
-use App\Models\Git;
+use App\Models\Git\Git;
 use App\Http\Controllers\Controller;
 use Illuminate\Foundation\Auth\AuthenticatesUsers;
 
@@ -44,9 +43,9 @@ class LoginController extends Controller
      *
      * @return \Illuminate\Http\Response
      */
-    public function redirectToProvider()
+    public function redirectToProvider(Git $git)
     {
-        return Git::getInstance()->login();
+        return $git->login();
     }
 
     /**
@@ -54,8 +53,8 @@ class LoginController extends Controller
      *
      * @return \Illuminate\Http\Response
      */
-    public function handleProviderCallback()
+    public function handleProviderCallback(Git $git)
     {
-        return Git::getInstance()->loginCallback();
+        return $git->loginCallback();
     }
 }

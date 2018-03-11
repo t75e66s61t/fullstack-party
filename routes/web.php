@@ -22,5 +22,6 @@ Route::group(['middleware'=>'guest'], function() {
 
 Route::group(['middleware'=>'auth'], function() {
     Route::get('/git/{repo}/issues/', 'GitController@issues')->name('issues');
+    Route::get('/git/{repo}/issues/{id}/comments/', 'GitController@comments')->name('comments');
     Route::get('/logout', 'Auth\LoginController@logout')->name('logout');
 });

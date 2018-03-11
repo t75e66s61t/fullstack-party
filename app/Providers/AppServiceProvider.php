@@ -14,7 +14,11 @@ class AppServiceProvider extends ServiceProvider
      */
     public function boot()
     {
+        //fixind MySQL issue
         Schema::defaultStringLength(191);
+        
+        //setting custom pagination template
+        \Illuminate\Pagination\LengthAwarePaginator::defaultView('sub.pagination');
     }
 
     /**
