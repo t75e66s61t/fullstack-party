@@ -12,9 +12,18 @@ use Git;
 
 class GitController extends Controller
 {
-    public function comments(Git $git, string $repo, int $id)
+    public function comments(Git $git, string $repo, int $number)
     {
-        return view('git.comments', compact(['repo']));
+        //get issue data
+        $issue = $git->getIssue($repo, $number);
+        
+        //get comments data
+        $comments = $git->getComments($repo, $number);
+        
+        //get time tracking logs
+        $logs = $git->getLogs();
+        
+        return view('git.comments', compact(['repo', 'issue', 'comments', 'logs']));
     }
     
     public function issues(Git $git, string $repo) 

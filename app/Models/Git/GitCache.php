@@ -61,7 +61,7 @@ class GitCache {
     public function get(string $group, string $key, $default) 
     {
         //if we have an up to date ETag - just get the value from the cache
-        if ($this->_cacheHits[$group]['status'] == self::STATUS_HIT) {
+        if (isset($this->_cacheHits[$group]) && $this->_cacheHits[$group]['status'] == self::STATUS_HIT) {
             return Cache::get($key, $default);
         }
         
@@ -78,7 +78,10 @@ class GitCache {
     public function init(string $group, string $url): bool
     {
         if (!isset($this->_cacheHits[$group])) {
-            return false;
+            $this->_cacheHits[$group] = [
+                'status' => self::STATUS_UNKNOWN,
+                'etag' => "git_etag_{$group}",
+            ];
         }
         
         if (in_array($this->_cacheHits[$group]['status'], [self::STATUS_UNKNOWN, self::STATUS_DIDNT_HIT])) {
@@ -125,7 +128,10 @@ class GitCache {
      */
     private function _getEtag(string $url, string $group): string
     {
-        $etag = Cache::get($this->_cacheHits[$group]['etag']);
+        $etag = "";
+        if (isset($this->_cacheHits[$group])) {
+            $etag = Cache::get($this->_cacheHits[$group]['etag']);
+        }
 
         $headers = $this->_headers;
         if ($etag) {

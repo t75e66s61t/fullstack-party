@@ -29,7 +29,7 @@
                     </span>
 
                     <span class="float-right">
-                      <a href="{{ Request::url() . "/" . $issue->id . "/comments" }}">
+                      <a href="{{ Request::url() . "/" . $issue->number . "/comments" }}">
                         @if($issue->comments > 0)
                           @if($issue->comments == 1)
                             1 comment

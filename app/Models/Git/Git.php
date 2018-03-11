@@ -106,7 +106,56 @@ class Git
         $this->_repo = config('github.default_repo');
     }
 
+    
+    /**
+     * Gets list of comments for given issue in a given repository
+     * 
+     * @param string $repo
+     * @param int $number
+     * 
+     * @return array
+     */
+    public function getComments(string $repo, int $number): array
+    {           
+        //looking for comments in cache
+        $comments = $this->_cache->get("issue_{$number}", "issue_comments_{$number}", []);
+        
+        //get fresh ones if needed
+        if (empty($comments)) {
+            $comments = $this->_api("repos/{$this->_user->username}/{$this->_repo}/issues/{$number}/comments");
+            
+            $this->_cache->set("issue_comments_{$number}", $comments);
+        }
+        
+        return $comments;
+    }
+    
 
+    /**
+     * Gets issue data
+     * 
+     * @param string $repo repository title
+     * @param int $number issue number in this repository
+     * 
+     * @return object
+     */
+    public function getIssue(string $repo, int $number)
+    {
+        $issue_request = "repos/{$this->_user->username}/{$this->_repo}/issues/{$number}";
+        $this->_initCaching("issue_{$number}", "{$this->_apiUrl}{$issue_request}");
+                
+        $issue = $this->_cache->get("issue_{$number}", "issue_{$number}", []);
+        
+        if (empty($issue)) {
+            $issue = $this->_api("repos/{$this->_user->username}/{$this->_repo}/issues/{$number}");
+            
+            $this->_cache->set("issue_{$number}", $issue);
+        }
+        
+        return $issue;
+    }
+    
+    
     /**
      * Gets list of issues assigned to currently logged in user
      * 
@@ -124,8 +173,9 @@ class Git
         }
         
         //initializing issues cache group
-        $this->_initCaching("issues_open", "open");
-        $this->_initCaching("issues_closed", "closed");
+        $u = "{$this->_apiUrl}repos/{$this->_user->username}/{$this->_repo}/issues?page=1&per_page=1";
+        $this->_initCaching("issues_open", $u, "open");
+        $this->_initCaching("issues_closed", $u, "closed");
         
         //getting total amount of issues
         $this->_totals = $this->_getTotals();
@@ -259,7 +309,14 @@ class Git
     }
     
     
-    private function _initCaching(string $group, string $state=""): void
+    /**
+     * Initializes custom caching mechanism
+     * 
+     * @param string $group
+     * @param string $url
+     * @param string $state
+     */
+    private function _initCaching(string $group, string $url, string $state=""): void
     {
         if ($this->_timeTracker) {
             $this->_timeTracker->start();
@@ -270,7 +327,7 @@ class Git
             $status = "&{$state}";
         }
         
-        $res = $this->_cache->init($group, "{$this->_apiUrl}repos/{$this->_user->username}/{$this->_repo}/issues?page=1&per_page=1{$status}");
+        $res = $this->_cache->init($group, "{$url}{$status}");
         
         if ($res) {
             $res = "cache hit!";
